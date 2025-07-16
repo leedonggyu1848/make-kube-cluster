@@ -70,7 +70,7 @@ resource "libvirt_cloudinit_disk" "ubuntu_cloudinit" {
 #cloud-config
 hostname: ubuntu-vm-${count.index + 1} # 각 VM마다 고유한 호스트 이름
 ssh_pwauth: false
-manage_etc_hosts: localhost
+manage_etc_hosts: true
 users:
   - name: ubuntu
     groups: sudo
