@@ -1,0 +1,76 @@
+
+---
+- name: Configure Firewall for Kubernetes
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install ufw
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Enable ufw
+      community.general.ufw:
+        state: enabled
+
+    - name: Allow SSH (port 22)
+      community.general.ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: Allow all traffic from other cluster nodes
+      community.general.ufw:
+        rule: allow
+        src: "{{ hostvars[item]['ansible_host'] }}"
+      loop: "{{ groups['all'] }}"
+
+    - name: Allow Flannel (VXLAN)
+      community.general.ufw:
+        rule: allow
+        port: '8472'
+        proto: udp
+
+    - name: Allow Kubernetes API Server port (6443) on master
+      community.general.ufw:
+        rule: allow
+        port: '6443'
+        proto: tcp
+      when: inventory_hostname in groups['masters']
+
+    - name: Allow etcd server client API ports (2379-2380) on master
+      community.general.ufw:
+        rule: allow
+        port: '2379:2380'
+        proto: tcp
+      when: inventory_hostname in groups['masters']
+
+    - name: Allow Kubelet API port (10250) on all nodes
+      community.general.ufw:
+        rule: allow
+        port: '10250'
+        proto: tcp
+
+    - name: Allow kube-scheduler port (10259) on master
+      community.general.ufw:
+        rule: allow
+        port: '10259'
+        proto: tcp
+      when: inventory_hostname in groups['masters']
+
+    - name: Allow kube-controller-manager port (10257) on master
+      community.general.ufw:
+        rule: allow
+        port: '10257'
+        proto: tcp
+      when: inventory_hostname in groups['masters']
+
+    - name: Allow NodePort Services (30000-32767) on all nodes
+      community.general.ufw:
+        rule: allow
+        port: '30000:32767'
+        proto: tcp
+
+    - name: Reload ufw to apply changes
+      ansible.builtin.command: ufw reload
+      changed_when: false

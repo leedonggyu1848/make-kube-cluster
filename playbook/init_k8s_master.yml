@@ -1,0 +1,63 @@
+
+---
+- name: Initialize Kubernetes Master Node and Get Join Token
+  hosts: master-node
+  become: yes
+  tasks:
+    - name: Check if Kubernetes master is already initialized
+      ansible.builtin.stat:
+        path: /etc/kubernetes/admin.conf
+      register: kube_admin_conf
+
+    - name: Initialize Kubernetes cluster
+      ansible.builtin.command: kubeadm init --pod-network-cidr=10.244.0.0/16
+      when: not kube_admin_conf.stat.exists
+
+    # --- root 사용자를 위한 Kubeconfig 설정 ---
+    - name: Create .kube directory for root user
+      ansible.builtin.file:
+        path: /root/.kube
+        state: directory
+        mode: '0755'
+
+    - name: Copy admin.conf to root user's .kube directory
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        remote_src: yes
+        owner: root
+        group: root
+        mode: '0644'
+
+    # --- 'ubuntu' 사용자를 위한 Kubeconfig 설정 (추가된 부분) ---
+    - name: Create .kube directory for ubuntu user
+      ansible.builtin.file:
+        path: /home/ubuntu/.kube
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Copy admin.conf to ubuntu user's .kube directory
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ubuntu/.kube/config
+        remote_src: yes
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    # --- Join Command 관련 작업 (기존과 동일) ---
+    - name: Get kubeadm join command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: kubeadm_join_command_output
+      changed_when: false
+
+    - name: Save kubeadm join command to file on Ansible controller
+      ansible.builtin.copy:
+        content: "{{ kubeadm_join_command_output.stdout }}"
+        dest: "{{ playbook_dir }}/../kubeadm_join_command.txt"
+        mode: '0644'
+      delegate_to: localhost
+      run_once: true
+      become: no

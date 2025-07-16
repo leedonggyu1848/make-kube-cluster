@@ -1,0 +1,15 @@
+---
+- name: Install Flannel CNI
+  hosts: master-node
+  become: yes
+  tasks:
+    - name: Check if Flannel is already installed
+      ansible.builtin.command: kubectl get pods -n kube-flannel
+      register: flannel_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Apply Flannel CNI manifest
+      ansible.builtin.command: kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+      register: flannel_install_output
+      changed_when: flannel_install_output.rc == 0

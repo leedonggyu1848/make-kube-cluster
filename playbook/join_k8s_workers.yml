@@ -1,0 +1,22 @@
+
+---
+- name: Join Worker Nodes to Kubernetes Cluster
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Read kubeadm join command from controller
+      ansible.builtin.slurp:
+        src: "{{ playbook_dir }}/../kubeadm_join_command.txt"
+      delegate_to: localhost
+      run_once: true
+      become: no
+      register: join_command_content
+
+    - name: Set fact for kubeadm join command
+      ansible.builtin.set_fact:
+        kubeadm_join_command: "{{ join_command_content['content'] | b64decode }}"
+
+    - name: Join node to Kubernetes cluster
+      ansible.builtin.command: "{{ kubeadm_join_command }}"
+      args:
+        creates: /etc/kubernetes/kubelet.conf
