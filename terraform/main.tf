@@ -128,7 +128,7 @@ ${join("\n", [for i in range(var.vm - 1) : "worker-node${i + 1} ansible_host=192
 
 [all:vars]
 ansible_user=ubuntu
-ansible_ssh_private_key_file=~/.ssh/vm_ssh_key
+ansible_ssh_private_key_file=${pathexpand("~/.ssh/vm_ssh_key")}
 EOF
 }
 
