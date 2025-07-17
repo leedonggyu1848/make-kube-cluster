@@ -1,15 +1,13 @@
-
----
 - name: Join Worker Nodes to Kubernetes Cluster
   hosts: workers
-  become: yes
+  become: true
   tasks:
     - name: Read kubeadm join command from controller
       ansible.builtin.slurp:
         src: "{{ playbook_dir }}/../kubeadm_join_command.txt"
       delegate_to: localhost
       run_once: true
-      become: no
+      become: false
       register: join_command_content
 
     - name: Set fact for kubeadm join command
