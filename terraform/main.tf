@@ -17,20 +17,42 @@ terraform {
     }
     local = {
       source = "hashicorp/local"
-      version = "2.1.0"
+      version = "2.5.3"
+    }
+    tls = {
+      source = "hashicorp/tls"
+      version = "4.1.0"
     }
   }
 }
 
-# 1. libvirt 프로바이더 설정
+# libvirt 프로바이더 설정
 # libvirt 데몬에 연결하기 위한 URI를 지정합니다.
 # 일반적으로 'qemu:///system'은 시스템 전체 libvirt 데몬에 연결합니다.
 provider "libvirt" {
   uri = "qemu:///system"
 }
 
-# 2. 내부 네트워크 정의
-# 4개의 VM이 통신할 수 있는 격리된 내부 네트워크를 생성합니다.
+# ssh key쌍 생성
+resource "tls_private_key" "vm_ssh_key" {
+  algorithm = "RSA"
+  rsa_bits = 4096
+}
+
+resource "local_file" "ssh_private_key" {
+  content = tls_private_key.vm_ssh_key.private_key_pem
+  filename = pathexpand("~/.ssh/vm_ssh_key")
+  file_permission = "0600"
+}
+
+resource "local_file" "ssh_public_key" {
+  content = tls_private_key.vm_ssh_key.public_key_openssh
+  filename = pathexpand("~/.ssh/vm_ssh_key.pub")
+  file_permission = "0644"
+}
+
+# 내부 네트워크 정의
+# var.vm개의  VM이 통신할 수 있는 격리된 내부 네트워크를 생성합니다.
 resource "libvirt_network" "internal_vm_network" {
   name      = "internal-vm-network"
   mode      = "nat" # NAT 모드로 설정하여 호스트를 통해 외부 인터넷 접근 가능
@@ -81,7 +103,7 @@ users:
     sudo: "ALL=(ALL) NOPASSWD: ALL"
     shell: /bin/bash
     ssh_authorized_keys:
-      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC5J0GbyxlESF37LB2F1IZAmqmee1UyQnJV2dIch0qd98JmjaD2bjhkpgDc8EzopaC2Ah1aprdMQfNScPJe95AoUeQwQVvRplsUaMwOkp3zHgH8QbG3Yl2yu/AavDvQ4nSPHEeLr5Ahd3yql28cPBZWORvZFekn4X/+m68vSu3EmVoNvxM9s35VZHjWON6OVFs4C8VTOL3nactk/y35xq4XzoBZ/5lGFvSNri2RxPtuGdj/GpSyoo8yRC/6UzkMDRXweDvmvNkgVsLIMR4SDuW9MirQMzX3D2nuMXkd1kG3FmzPCiPCKI2njrEnjixusMEXop4XOdQ9S6R9HyUWAx4/biGVZ/fPDiLgPxrom6vTl6Cwrn40RqRsuUa3IGJ19uKnvimhASHuSvvvlrSiF1UFYtFhon453b4CnR5NAkDOpIDVsnoPULU0AOm0VG2tNYiNTsjE20lQhxUEMawsRQA1emf9rdJ4VSuV8R1Bcw6aaQ2gkR7TUJS0Yvj+tJ2rQWuoeiKros4AhHi2tldGz2ZsNuyJPVT4MKBbTlEGKMtvqQj6Rcz+Bkp4UygWC/qsRetUtgqKvX5GoWJljNttlawMJ5p7U3M0oWxfvaDYFO3hD7v/SqNFhiNv6bK2ZJaSXX7cn+PFKiCh/RRDNmrCQU6jLje7ZlmEfCNrtsZUqTQbRQ== one@one-pc"
+      - "${tls_private_key.vm_ssh_key.public_key_openssh}"
 chpasswd:
     users:
         - {name: root, password: pw, type: text}
@@ -92,16 +114,17 @@ chpasswd:
 resource "local_file" "inventory" {
   filename = "${path.module}/../inventory.ini"
   file_permission = "0666"
-  content = <<EOT
+  content = <<EOF
 [masters]
 master-node ansible_host=192.168.100.100
   
 [workers]
 ${join("\n", [for i in range(var.vm - 1) : "worker-node${i + 1} ansible_host=192.168.100.${101 + i}"])}
+
 [all:vars]
 ansible_user=ubuntu
-ansible_ssh_private_key_file=~/.ssh/id_rsa
-EOT
+ansible_ssh_private_key_file=~/.ssh/vm_ssh_key
+EOF
 }
 
 # 6. 가상 머신 (도메인) 정의 - 4개 생성
