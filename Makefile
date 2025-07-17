@@ -1,9 +1,12 @@
 
-.PHONY: all install_tools configure_firewall init_master join_workers install_flannel
+.PHONY: all update_apt install_tools configure_firewall init_master join_workers install_flannel
 
 ANSIBLE_INVENTORY = ./inventory.ini
 
-all: install_tools configure_firewall init_master join_workers install_flannel
+all: update_apt install_tools configure_firewall init_master join_workers install_flannel
+
+update_apt:
+	ansible-playbook -i $(ANSIBLE_INVENTORY) playbook/update_apt.yml
 
 install_tools:
 	ansible-playbook -i $(ANSIBLE_INVENTORY) playbook/install_k8s_tools.yml

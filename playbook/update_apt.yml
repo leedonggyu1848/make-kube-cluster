@@ -1,0 +1,27 @@
+- name: Update apt repository
+  hosts: all
+  become: true
+  tasks:
+    - name: Update and upgrade apt packages with error handling
+      block:
+        - name: Initial attempt to update and upgrade apt packages
+          ansible.builtin.apt:
+            update_cache: true
+            upgrade: dist
+            autoclean: true
+            autoremove: true
+            clean: true
+
+      rescue:
+        - name: APT FAILED | Cleaning up apt lists as a recovery measure
+          ansible.builtin.shell:
+            cmd: 'rm -rf /var/lib/apt/lists/*'
+          args:
+            warn: false
+        - name: APT FAILED | Retrying update with specific compression order
+          ansible.builtin.shell: apt-get update -o Acquire::CompressionTypes::Order::=gz
+
+        - name: Update and upgrade apt packages
+          ansible.builtin.apt:
+            update_cache: true
+            upgrade: dist

@@ -1,20 +1,7 @@
-
----
 - name: Install Kubernetes Tools and Configure System
   hosts: all
   become: yes
   tasks:
-    - name: Clean apt cache
-      ansible.builtin.apt:
-        autoclean: yes
-        autoremove: yes
-        clean: yes
-
-    - name: Update and upgrade apt packages
-      ansible.builtin.apt:
-        update_cache: yes
-        upgrade: dist
-
     - name: Install docker.io
       ansible.builtin.apt:
         name: docker.io
