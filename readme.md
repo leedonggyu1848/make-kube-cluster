@@ -184,7 +184,7 @@ terraform apply --var vm=4 # 가상머신 4개 생성 개수 변경 가능 기�
 
 ``` bash
 sudo apt update
-sudo apt install python3-pip python3.10-venv -y
+sudo apt install python3-pip python3-venv -y
 ```
 
 이후 playbook이 있는 프로젝트 폴더로 이동
