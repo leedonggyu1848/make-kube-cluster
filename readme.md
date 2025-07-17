@@ -73,8 +73,6 @@ genisoimage는 테라폼에서 cloud-init iso 이미지를 생성하는 동안 m
 
 미리 정의된 테라폼을 이용할것 <a href="https://github.com/leedonggyu1848/make-kube-cluster" target="_blank">클론github</a>
 
-main.tf 파일에 **ssh 키를 넣어야 나중에 ansible을 원활하게 할 수 있다**
-
  #### Terraform 실행
 
 ``` bash
@@ -232,8 +230,10 @@ make all
 - **마스터 노드에 SSH로 접속**
 
   ``` bash
-  ssh ubuntu@192.168.100.100 -i ~/.ssh/id_rsa
+  ssh ubuntu@192.168.100.100 -i ~/.ssh/vm_ssh_key
   ```
+
+  테라폼에서 ssh키를 따로 생성해서 `~/.ssh/vm_ssh_key`에 위치한다
 
   (IP 주소는 inventory.ini에 지정한 마스터 노드 IP)
 
