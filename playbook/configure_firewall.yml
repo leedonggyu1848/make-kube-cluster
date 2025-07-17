@@ -1,8 +1,6 @@
-
----
 - name: Configure Firewall for Kubernetes
   hosts: all
-  become: yes
+  become: true
   tasks:
     - name: Install ufw
       ansible.builtin.apt:

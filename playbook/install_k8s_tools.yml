@@ -1,6 +1,6 @@
 - name: Install Kubernetes Tools and Configure System
   hosts: all
-  become: yes
+  become: true
   tasks:
     - name: Install docker.io
       ansible.builtin.apt:
@@ -44,13 +44,13 @@
         path: /etc/containerd/config.toml
         regexp: 'SystemdCgroup = false'
         line: '          SystemdCgroup = true'
-        backup: yes
+        backup: true
 
     - name: Restart containerd service
       ansible.builtin.systemd:
         name: containerd
         state: restarted
-        daemon_reload: yes
+        daemon_reload: true
 
     - name: Add Kubernetes apt repository key
       ansible.builtin.shell: |
@@ -71,7 +71,7 @@
           - kubeadm
           - kubectl
         state: present
-        update_cache: yes
+        update_cache: true
 
     - name: Hold kubelet, kubeadm, kubectl
       ansible.builtin.dpkg_selections:
@@ -91,4 +91,4 @@
         path: /etc/fstab
         regexp: '^([^#].*swap)'
         line: '#\1'
-        backrefs: yes
+        backrefs: true

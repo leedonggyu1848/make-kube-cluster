@@ -1,8 +1,6 @@
-
----
 - name: Initialize Kubernetes Master Node and Get Join Token
   hosts: master-node
-  become: yes
+  become: true
   tasks:
     - name: Check if Kubernetes master is already initialized
       ansible.builtin.stat:
@@ -24,7 +22,7 @@
       ansible.builtin.copy:
         src: /etc/kubernetes/admin.conf
         dest: /root/.kube/config
-        remote_src: yes
+        remote_src: true
         owner: root
         group: root
         mode: '0644'
@@ -42,7 +40,7 @@
       ansible.builtin.copy:
         src: /etc/kubernetes/admin.conf
         dest: /home/ubuntu/.kube/config
-        remote_src: yes
+        remote_src: true
         owner: ubuntu
         group: ubuntu
         mode: '0644'
@@ -60,4 +58,4 @@
         mode: '0644'
       delegate_to: localhost
       run_once: true
-      become: no
+      become: false
