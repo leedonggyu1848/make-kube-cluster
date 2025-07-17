@@ -15,6 +15,10 @@ terraform {
       source = "dmacvicar/libvirt" # libvirt 프로바이더의 올바른 소스
       version = "0.8.3" # 프로바이더 버전. 최신 안정 버전을 사용하거나 특정 버전을 지정할 수 있습니다.
     }
+    local = {
+      source = "hashicorp/local"
+      version = "2.1.0"
+    }
   }
 }
 
@@ -83,6 +87,21 @@ chpasswd:
         - {name: root, password: pw, type: text}
     expire: false
   EOF
+}
+
+resource "local_file" "inventory" {
+  filename = "${path.module}/../inventory.ini"
+  file_permission = "0666"
+  content = <<EOT
+[masters]
+master-node ansible_host=192.168.100.100
+  
+[workers]
+${join("\n", [for i in range(var.vm - 1) : "worker-node${i + 1} ansible_host=192.168.100.${101 + i}"])}
+[all:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+EOT
 }
 
 # 6. 가상 머신 (도메인) 정의 - 4개 생성
