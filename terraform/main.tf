@@ -114,6 +114,12 @@ chpasswd:
         - {name: root, password: pw, type: text}
     expire: false
   EOF
+
+  provisioner "local-exec" {
+      when        = destroy
+      command     = "ssh-keygen -f '${pathexpand("~/.ssh/known_hosts")}' -R '192.168.100.${100 + count.index}'"
+      on_failure  = continue
+  }
 }
 
 resource "local_file" "inventory" {

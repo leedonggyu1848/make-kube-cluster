@@ -1,0 +1,30 @@
+- name: 1. Update APT repositories
+  import_playbook: playbook/update_apt.yml
+  tags:
+    - always # 항상 실행되도록 하거나
+    - apt    # 개별 실행을 위해
+
+- name: 2. Install Kubernetes common tools
+  import_playbook: playbook/install_k8s_tools.yml
+  tags:
+    - tools
+
+- name: 3. Configure firewall rules
+  import_playbook: playbook/configure_firewall.yml
+  tags:
+    - firewall
+
+- name: 4. Initialize the Kubernetes master node
+  import_playbook: playbook/init_k8s_master.yml
+  tags:
+    - init_master
+
+- name: 5. Join worker nodes to the cluster
+  import_playbook: playbook/join_k8s_workers.yml
+  tags:
+    - join_workers
+
+- name: 6. Install Flannel CNI
+  import_playbook: playbook/install_flannel.yml
+  tags:
+    - flannel
