@@ -4,3 +4,4 @@
 .terraform.lock.hcl
 kubeadm_join_command.txt
 inventory.ini
+variables.tfvars
