@@ -244,3 +244,12 @@ make all
   ```
 
 <center><img src="https://image.minnnningnas.duckdns.org/images/a347a995-2d7e-4066-aa0a-e8e98e79e6a8.webp" style="zoom:50%;"></center>
+
+# AWS를 이용한 클러스터
+
+variables.tfvars 파일에 들어가야 하는 값
+  aws_access_key = "aws_access_key"
+  aws_secret_key = "aws_secret_key"
+  vm = 3
+
+  terraform apply -var-file -var-file variables.tfvars
