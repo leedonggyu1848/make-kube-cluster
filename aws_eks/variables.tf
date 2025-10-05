@@ -26,7 +26,7 @@ variable "aws_secret_key" {
 variable "db_username" {
   description = "RDS 데이터베이스 마스터 사용자 이름"
   type        = string
-  default     = "admin"
+  default     = "dong"
   sensitive   = true
 }
 
@@ -34,5 +34,12 @@ variable "db_password" {
   description = "RDS 데이터베이스 마스터 사용자 비밀번호"
   type        = string
   default     = "YourStrongPassword123!"
+  sensitive   = true
+}
+
+variable "db_name" {
+  description = "RDS 데이터베이스 이름"
+  type        = string
+  default     = "dongdb"
   sensitive   = true
 }
