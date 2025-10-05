@@ -1,8 +1,3 @@
-output "bastion_public_ip" {
-  description = "Bastion Host의 Public IP 주소"
-  value       = aws_instance.bastion.public_ip
-}
-
 output "rds_endpoint" {
   description = "RDS의 endpoint 주소"
   value = aws_db_instance.postgresql.endpoint
