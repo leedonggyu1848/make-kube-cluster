@@ -267,40 +267,6 @@ resource "aws_iam_role_policy_attachment" "efs_csi_attach" {
   role       = aws_iam_role.efs_csi_role.name
 }
 
-# --- AWS Load Balancer Controller용 IAM 역할 ---
-data "http" "load_balancer_controller_policy" {
-  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json"
-}
-
-resource "aws_iam_policy" "load_balancer_controller_policy" {
-  name   = "${var.team_name}-AWSLoadBalancerControllerIAMPolicy"
-  policy = data.http.load_balancer_controller_policy.response_body
-}
-
-resource "aws_iam_role" "load_balancer_controller_role" {
-  name = "${var.team_name}-AmazonEKSLoadBalancerControllerRole"
-  assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
-    Statement = [
-      {
-        Effect    = "Allow",
-        Principal = { Federated = module.eks.oidc_provider_arn },
-        Action    = "sts:AssumeRoleWithWebIdentity",
-        Condition = {
-          StringEquals = {
-            "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
-          }
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "load_balancer_controller_attach" {
-  policy_arn = aws_iam_policy.load_balancer_controller_policy.arn
-  role       = aws_iam_role.load_balancer_controller_role.name
-}
-
 # --- EKS 애드온 리소스 ---
 resource "aws_eks_addon" "ebs" {
   cluster_name             = module.eks.cluster_name
