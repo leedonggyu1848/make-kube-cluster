@@ -50,6 +50,25 @@ module "vpc" {
 # ------------------------------------------------------------------------------
 # 모듈: EKS
 # ------------------------------------------------------------------------------
+
+resource "aws_security_group" "eks" {
+  name   = "${var.team_name}-eks-sg"
+  vpc_id = module.vpc.vpc_id
+
+  ingress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks  = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 21.0"
@@ -81,16 +100,7 @@ module "eks" {
       min_size       = 2
       max_size       = 5
       desired_size   = 2
-      node_security_group_additional_rules = {
-        ingress_nodes_ephemeral_ports_tcp = {
-          description = "Allow all TCP traffic between nodes for Istio"
-          protocol    = "tcp"
-          from_port   = 0
-          to_port     = 65535
-          type        = "ingress"
-          source_node_security_group = true
-        }
-      }
+      vpc_security_group_ids = [aws_security_group.eks.id]
     }
   }
 }
@@ -122,6 +132,8 @@ resource "aws_instance" "bastion" {
   subnet_id     = module.vpc.public_subnets[0]
   key_name      = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.bastion.id]
+  associate_public_ip_address = true
+
 
   tags = {
     Name      = "${var.team_name}-bastion-host"
