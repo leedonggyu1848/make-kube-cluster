@@ -36,12 +36,12 @@ module "vpc" {
 
   azs             = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets  = ["10.0.101.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
 
   enable_nat_gateway = true
-  single_nat_gateway = true
   enable_dns_hostnames = true
 
+  tags = { "kubernetes.io/cluster/${var.team_name}-cluster" = "shared" }
   public_subnet_tags = { "kubernetes.io/role/elb" = "1" }
   private_subnet_tags = { "kubernetes.io/role/internal-elb" = "1" }
 
@@ -81,6 +81,16 @@ module "eks" {
       min_size       = 2
       max_size       = 5
       desired_size   = 2
+      node_security_group_additional_rules = {
+        ingress_nodes_ephemeral_ports_tcp = {
+          description = "Allow all TCP traffic between nodes for Istio"
+          protocol    = "tcp"
+          from_port   = 0
+          to_port     = 65535
+          type        = "ingress"
+          source_node_security_group = true
+        }
+      }
     }
   }
 }
@@ -212,70 +222,3 @@ resource "aws_s3_bucket_public_access_block" "main" {
   restrict_public_buckets = true
 }
 
-
-# ------------------------------------------------------------------------------
-# EKS addon
-# ------------------------------------------------------------------------------
-
-# --- EBS CSI Driver용 IAM 역할 ---
-resource "aws_iam_role" "ebs_csi_role" {
-  name = "${var.team_name}-ebs-csi-driver-role"
-  assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
-    Statement = [
-      {
-        Effect    = "Allow",
-        Principal = { Federated = module.eks.oidc_provider_arn },
-        Action    = "sts:AssumeRoleWithWebIdentity",
-        Condition = {
-          StringEquals = {
-            "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
-          }
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ebs_csi_attach" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-  role       = aws_iam_role.ebs_csi_role.name
-}
-
-# --- EFS CSI Driver용 IAM 역할 ---
-resource "aws_iam_role" "efs_csi_role" {
-  name = "${var.team_name}-efs-csi-driver-role"
-  assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
-    Statement = [
-      {
-        Effect    = "Allow",
-        Principal = { Federated = module.eks.oidc_provider_arn },
-        Action    = "sts:AssumeRoleWithWebIdentity",
-        Condition = {
-          StringEquals = {
-            "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:kube-system:efs-csi-controller-sa"
-          }
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "efs_csi_attach" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy"
-  role       = aws_iam_role.efs_csi_role.name
-}
-
-# --- EKS 애드온 리소스 ---
-resource "aws_eks_addon" "ebs" {
-  cluster_name             = module.eks.cluster_name
-  addon_name               = "aws-ebs-csi-driver"
-  service_account_role_arn = aws_iam_role.ebs_csi_role.arn
-}
-
-resource "aws_eks_addon" "efs" {
-  cluster_name             = module.eks.cluster_name
-  addon_name               = "aws-efs-csi-driver"
-  service_account_role_arn = aws_iam_role.efs_csi_role.arn
-}
