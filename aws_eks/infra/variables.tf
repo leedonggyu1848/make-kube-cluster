@@ -3,6 +3,7 @@ variable "team_name" {
   type = string
   default = "default_team"
 }
+
 variable "aws_region" {
   description = "배포할 AWS 리전"
   type        = string
