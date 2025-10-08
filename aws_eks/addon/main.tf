@@ -75,7 +75,7 @@ resource "helm_release" "external_dns" {
       aws = {
         zoneType = "public"
       }
-      domainFilters = ["neves-box.com"]
+      domainFilters = [var.domain_name]
       txtOwnerId    = data.terraform_remote_state.infra.outputs.eks_cluster_name
       logLevel      = "info"
 

@@ -10,9 +10,15 @@ data "aws_eks_cluster_auth" "cluster" {
 }
 
 variable "team_name" {
-  description = "team_name"
+  description = "team name"
   type = string
   default = "default_team"
+}
+
+variable "domain_name" {
+  description = "domain name"
+  type = string
+  nullable = false
 }
 
 variable "aws_region" {
