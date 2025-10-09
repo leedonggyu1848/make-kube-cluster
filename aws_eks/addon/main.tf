@@ -2,11 +2,11 @@
 # LB Controller
 # ------------------------------------------------------------------------------
 
-module "alb_controller_irsa" {
+module "lb_controller_irsa" {
   source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version   = "5.39.0"
 
-  role_name = "${data.terraform_remote_state.infra.outputs.eks_cluster_name}-alb-controller"
+  role_name = "${data.terraform_remote_state.infra.outputs.eks_cluster_name}-lb-controller"
   attach_load_balancer_controller_policy = true
 
   oidc_providers = {
@@ -27,14 +27,14 @@ resource "helm_release" "aws_lb_controller" {
    values = [
     yamlencode({
       clusterName = data.terraform_remote_state.infra.outputs.eks_cluster_name
-      region      = var.aws_region
+      region      = data.terraform_remote_state.infra.outputs.aws_region
       vpcId       = data.terraform_remote_state.infra.outputs.vpc_id
 
       serviceAccount = {
         create = true
         name   = "aws-load-balancer-controller"
         annotations = {
-          "eks.amazonaws.com/role-arn" = module.alb_controller_irsa.iam_role_arn
+          "eks.amazonaws.com/role-arn" = module.lb_controller_irsa.iam_role_arn
         }
       }
     })
@@ -50,7 +50,6 @@ module "external_dns_irsa" {
   version = "5.39.0"
 
   role_name = "${data.terraform_remote_state.infra.outputs.eks_cluster_name}-external-dns"
-
   attach_external_dns_policy = true
 
   oidc_providers = {
@@ -77,7 +76,16 @@ resource "helm_release" "external_dns" {
       }
       domainFilters = [var.domain_name]
       txtOwnerId    = data.terraform_remote_state.infra.outputs.eks_cluster_name
-      logLevel      = "info"
+      logLevel      = "debug"
+      sources = ["service", "ingress", "gateway-httproute", "gateway-tlsroute", "gateway-tcproute", "gateway-udproute"]
+      rbac = {
+        create = true
+        additionalPermissions = [{
+          apiGroups = ["gateway.networking.k8s.io"]
+          resources = ["gateways","httproutes","tlsroutes","tcproutes","udproutes"]
+          verbs = ["get","watch","list"]
+        }]
+      }
 
       serviceAccount = {
         create = true
@@ -87,5 +95,40 @@ resource "helm_release" "external_dns" {
         }
       }
     })
+  ]
+}
+
+# ------------------------------------------------------------------------------
+# EFS
+# ------------------------------------------------------------------------------
+
+# TODO: Add EFS CSI Driver
+
+# ------------------------------------------------------------------------------
+# istio minimal setting
+# ------------------------------------------------------------------------------
+
+resource "helm_release" "istio_base" {
+  name             = "istio-base"
+  chart            = "base"
+  repository       = "https://istio-release.storage.googleapis.com/charts"
+  namespace        = "istio-system"
+  create_namespace = true
+  version          = "1.27.1"
+  timeout          = 300
+  wait             = true
+}
+
+resource "helm_release" "istiod" {
+  name       = "istiod"
+  chart      = "istiod"
+  repository = "https://istio-release.storage.googleapis.com/charts"
+  namespace  = "istio-system"
+  version    = "1.27.1"
+  timeout    = 600
+  wait       = true
+  depends_on = [
+    helm_release.istio_base,
+    helm_release.aws_lb_controller
   ]
 }

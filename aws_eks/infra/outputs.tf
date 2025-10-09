@@ -1,3 +1,13 @@
+output "team_name" {
+  description = "team name"
+  value = var.team_name
+}
+
+output "aws_region" {
+  description = "AWS 리전"
+  value       = var.aws_region
+}
+
 output "vpc_id" {
   description = "VPC ID"
   value       = module.vpc.vpc_id

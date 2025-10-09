@@ -13,7 +13,7 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region = data.terraform_remote_state.infra.outputs.aws_region
 }
 
 provider "helm" {
