@@ -39,6 +39,8 @@ resource "helm_release" "aws_lb_controller" {
       }
     })
   ]
+
+  depends_on = [ module.efs_csi_driver_irsa ]
 }
 
 # ------------------------------------------------------------------------------
@@ -96,13 +98,53 @@ resource "helm_release" "external_dns" {
       }
     })
   ]
+  depends_on = [ module.external_dns_irsa ]
 }
 
 # ------------------------------------------------------------------------------
 # EFS
 # ------------------------------------------------------------------------------
 
-# TODO: Add EFS CSI Driver
+module "efs_csi_driver_irsa" {
+  source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version   = "5.39.0"
+
+  role_name = "${data.terraform_remote_state.infra.outputs.eks_cluster_name}-efs-csi-driver"
+  attach_efs_csi_policy = true
+
+  oidc_providers = {
+    main = {
+      provider_arn               = data.terraform_remote_state.infra.outputs.eks_oidc_provider_arn
+      namespace_service_accounts = ["kube-system:efs-csi-controller-sa"]
+    }
+  }
+}
+
+resource "helm_release" "aws_efs_csi_driver" {
+  name       = "aws-efs-csi-driver"
+  namespace  = "kube-system"
+  repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
+  chart      = "aws-efs-csi-driver"
+  version    = "2.1.13"
+
+  values = [
+    yamlencode({
+      controller = {
+        serviceAccount = {
+          create = true
+          name   = "efs-csi-controller-sa"
+          annotations = {
+            "eks.amazonaws.com/role-arn" = module.efs_csi_driver_irsa.iam_role_arn
+          }
+        }
+      }
+    })
+  ]
+
+  depends_on = [
+    module.efs_csi_driver_irsa
+  ]
+}
 
 # ------------------------------------------------------------------------------
 # istio minimal setting
@@ -132,3 +174,4 @@ resource "helm_release" "istiod" {
     helm_release.aws_lb_controller
   ]
 }
+
