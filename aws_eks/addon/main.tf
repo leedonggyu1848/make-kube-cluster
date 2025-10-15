@@ -125,7 +125,7 @@ resource "helm_release" "aws_efs_csi_driver" {
   namespace  = "kube-system"
   repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
   chart      = "aws-efs-csi-driver"
-  version    = "2.1.13"
+  version    = "3.2.3"
 
   values = [
     yamlencode({
@@ -169,6 +169,16 @@ resource "helm_release" "istiod" {
   version    = "1.27.1"
   timeout    = 600
   wait       = true
+  values = [
+    yamlencode({
+      pilot = {
+        env = {
+          PILOT_ENABLE_ALPHA_GATEWAY_API = "true"
+        }
+      }
+    })
+  ]
+ 
   depends_on = [
     helm_release.istio_base,
     helm_release.aws_lb_controller
